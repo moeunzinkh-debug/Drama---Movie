@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { isSupabaseConfigured, missingSupabaseEnv, siteUrl } from "@/lib/supabase/env";
 
 /**
  * GET /api/health
@@ -40,6 +40,10 @@ export async function GET() {
     {
       status: healthy ? "ok" : "degraded",
       database,
+      // Named, never valued: a monitor is allowed to know which setting is
+      // missing, not what it holds. Blank when configuration is complete.
+      missing: missingSupabaseEnv(),
+      siteUrl: siteUrl(),
       // Surfaces which commit is live; injected at build time by CI if present.
       commit: process.env.CF_PAGES_COMMIT_SHA ?? process.env.GITHUB_SHA ?? "unknown",
       latencyMs: Date.now() - started,

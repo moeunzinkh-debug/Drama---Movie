@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import AdToggle from "@/components/admin/ad-toggle";
+import { adsEnabled } from "@/lib/supabase/env";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,7 @@ export default async function AdminAdsPage() {
     .select("id, page, format, enabled, notes")
     .order("id");
 
-  const providerEnabled = process.env.NEXT_PUBLIC_ADS_ENABLED === "true";
+  const providerEnabled = adsEnabled();
 
   return (
     <>

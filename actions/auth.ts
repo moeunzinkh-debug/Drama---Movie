@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { readEnvOr } from "@/lib/env";
 
 /**
  * Resolves the public origin used for the OAuth redirect.
@@ -33,7 +34,7 @@ async function resolveOrigin(): Promise<string> {
     return `${proto}://${forwardedHost}`;
   }
 
-  return process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  return readEnvOr("NEXT_PUBLIC_SITE_URL", "http://localhost:3000");
 }
 
 /**

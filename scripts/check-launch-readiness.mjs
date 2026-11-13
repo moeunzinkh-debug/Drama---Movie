@@ -285,6 +285,42 @@ if (stillSampleVideo || prototypeHits.length) {
   );
 }
 
+// Build-time inlining of server secrets.
+//
+// Next.js substitutes `process.env.NAME` with its build-time value. A server
+// secret read that way is frozen into the bundle, so configuring the Worker at
+// runtime has no effect and the deployment reports a missing setting forever.
+// Every server read must go through lib/env.ts.
+const SECRET_PREFIXES = ["SUPABASE_", "CLOUDFLARE_", "NEXT_PUBLIC_"];
+const inlineOffenders = [];
+for (const dir of ["app", "lib", "actions"]) {
+  const walk = (p, rel) => {
+    if (!existsSync(p)) return;
+    for (const entry of readdirSync(p, { withFileTypes: true })) {
+      const full = join(p, entry.name);
+      const shown = join(rel, entry.name);
+      if (entry.isDirectory()) walk(full, shown);
+      else if (/\.(ts|tsx)$/.test(entry.name) && !/lib\/env\.ts$/.test(shown) && !/lib\/supabase\/env\.ts$/.test(shown)) {
+        const body = readFileSync(full, "utf8");
+        const hits = [...body.matchAll(/process\.env\.([A-Z0-9_]+)/g)]
+          .map((m) => m[1])
+          .filter((name) => SECRET_PREFIXES.some((p) => name.startsWith(p)));
+        if (hits.length) inlineOffenders.push(`${shown} (${[...new Set(hits)].join(", ")})`);
+      }
+    }
+  };
+  walk(join(root, dir), dir);
+}
+if (inlineOffenders.length) {
+  blocker(
+    "env-inlining",
+    `Server settings read at build time: ${inlineOffenders.join("; ")}`,
+    "Use readEnv()/siteUrl()/adsEnabled() from lib/env.ts — literal process.env reads are frozen into the Worker bundle.",
+  );
+} else {
+  pass("env-inlining", "All server settings are read at runtime (survive Worker config)");
+}
+
 // Uncommitted work should never be published.
 try {
   const dirty = execSync("git status --porcelain", { cwd: root, encoding: "utf8" }).trim();

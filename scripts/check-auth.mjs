@@ -42,6 +42,31 @@ const hint = (m) => console.log(`    \x1b[2m${m}\x1b[0m`);
 
 console.log("\nCINEMA KH — diagnostics សម្រាប់ការចូល Google\n" + "=".repeat(52) + "\n");
 
+// --- 0. Ask the deployment what it can see ----------------------------------
+// A deployed Worker reports which variables are missing. This distinguishes
+// "not configured" from "configured but rejected", which look identical in the
+// browser. Skipped when the target is local or unreachable.
+if (site && /^https?:\/\//.test(site)) {
+  try {
+    const res = await fetch(`${site.replace(/\/$/, "")}/api/health`, {
+      signal: AbortSignal.timeout(8000),
+    });
+    const health = await res.json().catch(() => null);
+    if (health && Array.isArray(health.missing)) {
+      if (health.missing.length) {
+        bad(`ការដាក់ផ្សាយនេះខ្វះអថេរ៖ ${health.missing.join(", ")}`);
+        hint("បន្ថែមពួកវាក្នុង Cloudflare → Worker → Settings → Variables and Secrets");
+        hint("រួច deploy ម្តងទៀត — ការបន្ថែម variable ត្រូវការ deploy ថ្មី");
+        hint("មើល §៤ ក្នុង docs/DEPLOY_CLOUDFLARE.md");
+        process.exit(1);
+      }
+      ok(`ការដាក់ផ្សាយនេះអានអថេរបាន (database: ${health.database})`);
+    }
+  } catch {
+    warn("មិនអាចអាន /api/health ពីដែននេះបានទេ — បន្តពិនិត្យដោយផ្ទាល់");
+  }
+}
+
 // --- 1. Configuration present ------------------------------------------------
 if (!url || !anon) {
   bad("Supabase មិនទាន់កំណត់ — ខ្វះ NEXT_PUBLIC_SUPABASE_URL ឬ NEXT_PUBLIC_SUPABASE_ANON_KEY");

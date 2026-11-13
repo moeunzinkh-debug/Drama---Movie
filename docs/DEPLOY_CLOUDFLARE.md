@@ -226,6 +226,45 @@ npx wrangler secret put CLOUDFLARE_STREAM_SIGNING_KEY
 
 សម្រាប់ local development សូមបង្កើត `.env.local` (វាត្រូវបាន `.gitignore` រួចហើយ)។
 
+### ៨.១ ⚠️ អថេរត្រូវការសម្រាប់ការចូល (ខ្វះ → ចូលមិនបាន)
+
+បើគេហទំព័របង្ហាញ **"មិនទាន់កំណត់ Supabase"** នោះមានន័យថា Worker មិនអាន
+អថេរទាំងពីរនេះបានទេ — ទោះបីអ្នកបានបញ្ចូល secret ផ្សេងៗរួចហើយក៏ដោយ៖
+
+| ឈ្មោះ | ត្រូវការ | យកពីណា |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | **ចាំបាច់** | Supabase → Settings → API → Project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | **ចាំបាច់** | Supabase → Settings → API → anon/public key |
+
+> **`ADSENSE_CLIENT_ID`, `CLOUDFLARE_STREAM_*`, `MEDIA_SIGNING_SECRET` មិនជំនួសតម្រូវការនេះទេ។**
+> បើគ្មាន URL និង anon key នោះ app មិនអាចភ្ជាប់ទៅ Supabase បានឡើយ
+> ហើយប៊ូតុង "បន្តដោយ Google" នឹងនៅបិទ។
+
+**របៀបបន្ថែម៖**
+1. Workers & Pages → `cinema-kh` → **Settings → Variables and Secrets**
+2. **Add** → ឈ្មោះ `NEXT_PUBLIC_SUPABASE_URL`, តម្លៃ `https://xxxxx.supabase.co`
+3. ធ្វើដូចគ្នាសម្រាប់ `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+4. **Deploy ម្តងទៀត** — ការបន្ថែម variable មិនអាចមានប្រសិទ្ធភាពលើការដាក់ផ្សាយចាស់ទេ
+
+**ផ្ទៀងផ្ទាត់៖**
+```bash
+curl -s https://<ដែនរបស់អ្នក>/api/health
+# {"status":"ok","database":"ok","missing":[],...}   ← ត្រឹមត្រូវ
+# {"status":"degraded","missing":["NEXT_PUBLIC_SUPABASE_URL"],...}  ← កំពុងខ្វះ
+```
+
+ឬ៖ `npm run check:auth -- https://<ដែនរបស់អ្នក>` — វានឹងបញ្ជាក់ឈ្មោះអថេរដែលខ្វះ។
+
+### ៨.២ ហេតុអ្វីកូដអានអថេរបានតែពេលដំណើរការ
+
+Next.js ជំនួសកន្សោម `process.env.CHANGE_ME` ដោយតម្លៃដែលវាដឹង **ពេល build**។
+នៅលើ Cloudflare តម្លៃពិតមកជាមួយ Worker ពេល **ដំណើរការ**។ ដូច្នេះការអានបែបត្រង់
+នឹងធ្វើឲ្យតម្លៃ `undefined` ជាប់ក្នុង bundle ជាអចិន្ត្រៃយ៍។
+
+កូដនេះអានតាម key ដែលគណនា (`lib/env.ts`) ដូច្នេះការអានកើតឡើងពេលដំណើរការ —
+ហើយ `npm run check:launch` នឹងបរាជ័យបើមាននរណាម្នាក់ត្រឡប់ទៅអានបែបត្រង់វិញ។
+
+
 ---
 
 ## ៩. ស្ថានភាពបច្ចុប្បន្ន (សូមអានមុនផ្សព្វផ្សាយ)
