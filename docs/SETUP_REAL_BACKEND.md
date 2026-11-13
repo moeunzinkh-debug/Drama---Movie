@@ -104,6 +104,51 @@ select tablename, rowsecurity from pg_tables
 
 ---
 
+### ៣.៣ បើចូល Google មិនបាន — ពិនិត្យតាមលំដាប់នេះ
+
+ការចូល Google បរាជ័យមានមូលហេតុតែ **៣** ប៉ុណ្ណោះ។ រត់ពាក្យបញ្ជាខាងក្រោម
+ដើម្បីដឹងថាមួយណា (ដាក់ដែនពិតដែលអ្នកបើកក្នុង browser)៖
+
+```bash
+npm run check:auth -- https://<ដែនរបស់អ្នក>
+```
+
+| លទ្ធផល | មូលហេតុ | ដំណោះស្រាយ |
+|---|---|---|
+| `Supabase មិនទាន់កំណត់` | ខ្វះ `NEXT_PUBLIC_SUPABASE_URL` / `ANON_KEY` | បន្ថែមក្នុង Worker Variables **រួច deploy ម្តងទៀត** |
+| `Google provider មិនទាន់បើក` | Supabase provider មិន Enable | Authentication → Providers → Google |
+| `Supabase បដិសេធសំណើ` | `redirect_to` មិននៅក្នុង allow-list | បន្ថែម `/auth/callback` ក្នុង Redirect URLs |
+| `Supabase ទទួលយក redirect` ✓ | ខាង Supabase ត្រឹមត្រូវ | បញ្ហានៅ Google Cloud — មើលខាងក្រោម |
+
+**កំហុសដែលឃើញញឹកញាប់បំផុត៖ `redirect_uri_mismatch`**
+
+Google ទាមទារឲ្យ Authorized redirect URI ជា **Supabase callback** មិនមែនដែនរបស់អ្នកទេ៖
+
+```
+https://<project-ref>.supabase.co/auth/v1/callback   ← ត្រូវតែមាននេះ
+https://<ដែនរបស់អ្នក>/auth/callback                    ← នេះជារបស់ Supabase មិនមែន Google
+```
+
+**កំហុសទីពីរញឹកញាប់៖ `NEXT_PUBLIC_SITE_URL` ជា localhost ក្នុង production**
+
+`NEXT_PUBLIC_*` ត្រូវបានដាក់បញ្ចូល **ពេល build** មិនមែនពេលដំណើរការទេ។ បើអ្នក
+deploy ដោយគ្មាន variable នេះ តម្លៃ `http://localhost:3000` នឹងជាប់ក្នុង bundle។
+
+កូដឥឡូវយក **host ពី request** មុន ដូច្នេះវាដំណើរការលើ `workers.dev`, ដែនផ្ទាល់ខ្លួន
+និង preview ទាំងអស់ដោយមិនចាំបាច់កំណត់អ្វីបន្ថែម។ `NEXT_PUBLIC_SITE_URL` នៅតែប្រើ
+សម្រាប់ sitemap និង OG image ដូច្នេះគួរកំណត់ជាដែនពិតដែរ។
+
+**កំហុសទីបី៖ លាយដែនក្នុងពេលតែមួយ**
+
+បើអ្នកចាប់ផ្តើមចូលនៅ `localhost:3000` ហើយត្រឡប់មក `workers.dev` (ឬផ្ទុយគ្នា)
+cookie PKCE នឹងបាត់ → ឃើញកំហុស `code verifier`។ ត្រូវចាប់ផ្តើម និងបញ្ចប់
+នៅលើដែនតែមួយជានិច្ច។
+
+> បន្ទាប់ពីកែ Google Cloud ឬ Supabase សូមរង់ចាំ **៥–១០ នាទី** មុនសាកល្បង
+> ព្រោះការកំណត់ទាំងពីរមាន cache។
+
+---
+
 ## ៤. កំណត់ `.env.local`
 
 ```bash

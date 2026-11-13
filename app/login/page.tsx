@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { signInWithGoogle } from "@/actions/auth";
 import { getCurrentUser } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
+import AuthError from "@/components/auth-error";
 
 export const metadata: Metadata = { title: "ចូលដោយ Google" };
 
@@ -35,11 +36,7 @@ export default async function LoginPage({
         </div>
       )}
 
-      {error && (
-        <div role="alert" className="mt-6 rounded-xl border border-red-500/30 bg-red-500/5 p-4 text-xs text-red-200">
-          ការចូលមិនបានជោគជ័យ៖ {decodeURIComponent(error)}
-        </div>
-      )}
+      {error && <AuthError error={error} />}
 
       <form action={signInWithGoogle} className="mt-6">
         <input type="hidden" name="next" value={next} />
