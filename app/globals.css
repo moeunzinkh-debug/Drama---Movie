@@ -1,0 +1,78 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #07070c;
+  --color-ink-2: #0d0d15;
+  --color-ink-3: #14141f;
+  --color-line: #23232f;
+  --color-gold: #f0b429;
+  --color-gold-dim: #b8841a;
+  --color-mist: #9a9aad;
+  --font-sans: "Noto Sans Khmer", "Khmer OS Battambang", ui-sans-serif, system-ui,
+    -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-ink);
+  color: #ececf4;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--color-gold);
+  color: #0a0a0f;
+}
+
+/* Focus ring that stays visible on the dark palette */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.hero-vignette {
+  background:
+    radial-gradient(120% 90% at 15% 0%, rgba(240, 180, 41, 0.14), transparent 60%),
+    radial-gradient(100% 80% at 90% 20%, rgba(46, 242, 216, 0.1), transparent 55%),
+    linear-gradient(180deg, #0a0c14 0%, #07070c 70%);
+}
+
+.card-shine {
+  background-image: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.07) 45%, transparent 60%);
+  background-size: 250% 100%;
+  background-position: 100% 0;
+  transition: background-position 600ms ease;
+}
+.group:hover .card-shine {
+  background-position: 0 0;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
