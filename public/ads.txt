@@ -1,0 +1,11 @@
+# CINEMA KH — ads.txt
+#
+# Intentionally empty: no ad network has approved this site yet, so no seller is
+# authorised to sell CINEMA KH inventory.
+#
+# After Google AdSense (or another provider) is approved, replace this file with
+# the exact line(s) shown in the provider dashboard, for example:
+#   google.com, pub-0000000000000000, DIRECT, f08c47fec0942fa0
+#
+# Never publish a placeholder publisher ID: an incorrect ads.txt can void your
+# revenue and misrepresent authorised sellers.
