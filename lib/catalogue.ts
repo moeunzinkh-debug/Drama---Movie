@@ -1,6 +1,13 @@
 import type { Title, Episode, Season } from "./types";
 
 /**
+ * Seed rows are authored by slug, not by uuid — the database assigns ids on
+ * insert. `SeedTitle` is the compile-time shape checked against the real Title
+ * so drift between this file and lib/types.ts is caught by tsc.
+ */
+export type SeedTitle = Omit<Title, "id">;
+
+/**
  * Sample catalogue.
  *
  * Every title below is fictional and exists purely so the interface can be
@@ -35,7 +42,7 @@ function season(number: number, title: string, episodes: Episode[]): Season {
   return { number, title, episodes };
 }
 
-export const TITLES: Title[] = [
+export const TITLES: SeedTitle[] = [
   {
     slug: "mekong-shadows",
     name: "Mekong Shadows",

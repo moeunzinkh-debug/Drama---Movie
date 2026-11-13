@@ -19,6 +19,8 @@ export interface Season {
 }
 
 export interface Title {
+  /** Database id (uuid). */
+  id: string;
   slug: string;
   name: string;
   nameKm: string;

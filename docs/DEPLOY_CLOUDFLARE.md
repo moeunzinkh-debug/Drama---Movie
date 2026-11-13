@@ -35,6 +35,7 @@ static assets (`/assets`)។ អ្នកគ្រាន់តែរត់ comma
 ```bash
 git clone <repo-url> && cd Drama---Movie
 npm install
+cp .env.example .env.local     # បំពេញ Supabase keys (មើល SETUP_REAL_BACKEND.md)
 
 # មើលគេហទំព័រនៅ http://localhost:3000
 npm run dev
@@ -140,10 +141,20 @@ https://cinema-kh.<your-subdomain>.workers.dev
 
 ---
 
-## ៨. Environment variables (បើចាំបាច់)
+## ៨. Environment variables (ចាំបាច់ឥឡូវ)
 
-គម្រោងនេះមិនទាន់ត្រូវការ secret ណាមួយទេ។ នៅពេលភ្ជាប់ Supabase / Google OAuth / AdSense
-សូមបន្ថែម **នៅ Cloudflare Dashboard**៖
+គម្រោងនេះ**ត្រូវការ** Supabase ដើម្បីដំណើរការ។ មើល `docs/SETUP_REAL_BACKEND.md`
+សម្រាប់ការណែនាំពេញលេញ។
+
+**បន្ថែម secrets ដោយ command (មិនដាក់ក្នុង `wrangler.jsonc`)៖**
+
+```bash
+npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY
+npx wrangler secret put CLOUDFLARE_STREAM_API_TOKEN
+npx wrangler secret put CLOUDFLARE_STREAM_SIGNING_KEY
+```
+
+**Variables ធម្មតា** អាចដាក់ក្នុង Dashboard ឬ `wrangler.jsonc`៖
 
 **Workers & Pages → cinema-kh → Settings → Variables and Secrets → Add**
 
@@ -151,9 +162,12 @@ https://cinema-kh.<your-subdomain>.workers.dev
 |---|---|---|
 | `NEXT_PUBLIC_SITE_URL` | Variable | `https://cinema-kh.com` (សម្រាប់ sitemap + OG) |
 | `NEXT_PUBLIC_ADS_ENABLED` | Variable | `false` រហូតដល់ AdSense អនុម័ត |
-| `SUPABASE_URL` | Variable | នៅពេលភ្ជាប់ database |
-| `SUPABASE_ANON_KEY` | Secret | anon key តែប៉ុណ្ណោះ (public-safe) |
+| `NEXT_PUBLIC_SUPABASE_URL` | Variable | ពី Supabase → Settings → API |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Variable | anon key (public-safe, RLS ការពារ) |
 | `SUPABASE_SERVICE_ROLE_KEY` | **Secret** | ⚠️ មិនត្រូវចេញទៅ browser ឡើយ |
+| `CLOUDFLARE_ACCOUNT_ID` | Variable | សម្រាប់ Cloudflare Stream |
+| `CLOUDFLARE_STREAM_API_TOKEN` | **Secret** | សម្រាប់បង្កើត playback token |
+| `CLOUDFLARE_STREAM_SIGNING_KEY` | **Secret** | signed URLs (ណែនាំ) |
 
 > ⚠️ **`NEXT_PUBLIC_*` ត្រូវបានបង្ហាញទៅ browser។** កុំដាស់ service-role key ឬ secret ណាមួយ
 > ក្នុង variable ប្រភេទ `NEXT_PUBLIC_`។
@@ -169,12 +183,12 @@ https://cinema-kh.<your-subdomain>.workers.dev
 | មុខងារ | ស្ថានភាព |
 |---|---|
 | UI / ទំព័រ / responsive | ✅ រួចរាល់ |
-| ទិន្នន័យមាតិកា | ⚠️ រឿងប្រឌិតក្នុង `lib/catalogue.ts` |
-| ការចូល Google | ⚠️ ការសាកល្បងក្នុង localStorage (មិនមែនសុវត្ថិភាពពិត) |
-| វីដេអូពិត | ❌ មិនទាន់ភ្ជាប់ (រង់ចាំ Cloudflare Stream) |
-| Database (Supabase) | ❌ មិនទាន់ភ្ជាប់ |
+| ទិន្នន័យមាតិកា | ✅ ក្នុង PostgreSQL (seed ១៤ រឿងប្រឌិតសម្រាប់សាកល្បង) |
+| ការចូល Google | ✅ OAuth ពិត + httpOnly cookies |
+| វីដេអូពិត | ✅ HLS player + server-side token (ត្រូវកំណត់ Cloudflare Stream) |
+| Database (Supabase) | ✅ schema + RLS + migrations |
 | ការផ្សាយពាណិជ្ជកម្ម | ❌ មិនទាន់បើក (រង់ចាំការអនុម័ត AdSense) |
-| Admin | ⚠️ គំរូអានបានតែប៉ុណ្ណោះ — **ត្រូវដាក់ការការពារ មុនដាក់ផ្សាយ** |
+| Admin | ✅ ការពារដោយ role + RLS + audit log |
 
 👉 **មុនពេលបង្ហាញជាសាធារណៈ៖** អាន `docs/SECURITY.md` និងដាក់ការការពារ admin
 បើមិនដូច្នេះ `/admin` នឹងអាចចូលបានដោយនរណាម្នាក់។

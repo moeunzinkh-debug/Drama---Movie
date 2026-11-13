@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useSession } from "@/components/session-provider";
 
 const NAV = [
@@ -16,15 +16,25 @@ const NAV = [
 export default function SiteHeader() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, profile, signOut } = useSession();
+  const { user, profile, isAdmin } = useSession();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
+  const [pending, startTransition] = useTransition();
 
   useEffect(() => setOpen(false), [pathname]);
 
   function submitSearch(e: React.FormEvent) {
     e.preventDefault();
     router.push(`/search?q=${encodeURIComponent(q.trim())}`);
+  }
+
+  function signOut() {
+    startTransition(async () => {
+      // Real sign-out: clears the Supabase session cookie server-side.
+      await fetch("/auth/signout", { method: "POST" });
+      router.push("/");
+      router.refresh();
+    });
   }
 
   return (
@@ -47,12 +57,18 @@ export default function SiteHeader() {
               {item.label}
             </Link>
           ))}
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className="rounded-md px-3 py-2 text-sm font-semibold text-gold transition hover:bg-gold/10"
+            >
+              គ្រប់គ្រង
+            </Link>
+          )}
         </nav>
 
         <form onSubmit={submitSearch} className="ml-auto hidden md:block" role="search">
-          <label className="sr-only" htmlFor="site-search">
-            ស្វែងរករឿង
-          </label>
+          <label className="sr-only" htmlFor="site-search">ស្វែងរករឿង</label>
           <input
             id="site-search"
             value={q}
@@ -69,16 +85,22 @@ export default function SiteHeader() {
                 href="/my-list"
                 className="hidden items-center gap-2 rounded-full border border-line px-3 py-1.5 text-sm text-mist transition hover:border-gold/50 hover:text-white sm:flex"
               >
-                <span className="grid h-5 w-5 place-items-center rounded-full bg-gold/20 text-[11px] font-bold text-gold">
-                  {profile?.slice(0, 1).toUpperCase() ?? "U"}
-                </span>
-                {profile ?? "គណនី"}
+                {user.avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={user.avatarUrl} alt="" width={20} height={20} className="h-5 w-5 rounded-full" />
+                ) : (
+                  <span className="grid h-5 w-5 place-items-center rounded-full bg-gold/20 text-[11px] font-bold text-gold">
+                    {(profile?.name ?? user.displayName ?? "U").slice(0, 1).toUpperCase()}
+                  </span>
+                )}
+                <span className="max-w-[8rem] truncate">{profile?.name ?? user.displayName ?? "គណនី"}</span>
               </Link>
               <button
                 onClick={signOut}
-                className="rounded-full border border-line px-3 py-1.5 text-sm text-mist transition hover:border-white/30 hover:text-white"
+                disabled={pending}
+                className="rounded-full border border-line px-3 py-1.5 text-sm text-mist transition hover:border-white/30 hover:text-white disabled:opacity-50"
               >
-                ចាកចេញ
+                {pending ? "…" : "ចាកចេញ"}
               </button>
             </div>
           ) : (
@@ -108,14 +130,15 @@ export default function SiteHeader() {
         <div id="mobile-nav" className="border-t border-line bg-ink-2 lg:hidden">
           <nav className="mx-auto flex max-w-7xl flex-col px-4 py-3" aria-label="ម៉ឺនុយទូរស័ព្ទ">
             {NAV.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="rounded-md px-2 py-3 text-sm text-mist hover:bg-white/5 hover:text-white"
-              >
+              <Link key={item.href} href={item.href} className="rounded-md px-2 py-3 text-sm text-mist hover:bg-white/5 hover:text-white">
                 {item.label}
               </Link>
             ))}
+            {isAdmin && (
+              <Link href="/admin" className="rounded-md px-2 py-3 text-sm font-semibold text-gold hover:bg-gold/10">
+                គ្រប់គ្រង
+              </Link>
+            )}
             <form onSubmit={submitSearch} className="mt-2 px-2 pb-2">
               <input
                 value={q}

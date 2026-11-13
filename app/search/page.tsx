@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import TitleCard from "@/components/title-card";
-import { browse } from "@/lib/data";
+import { listTitles } from "@/lib/queries";
 
 export const metadata: Metadata = { title: "ស្វែងរក" };
+export const dynamic = "force-dynamic";
 
 export default async function SearchPage({
   searchParams,
@@ -12,17 +13,15 @@ export default async function SearchPage({
 }) {
   const { q } = await searchParams;
   const query = (q ?? "").trim();
-  const results = query ? browse({ q: query }) : [];
+  const results = query ? await listTitles({ q: query, limit: 60 }) : [];
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
       <h1 className="text-2xl font-black tracking-tight sm:text-3xl">ស្វែងរក</h1>
       {query ? (
-        <p className="mt-1 text-sm text-mist">
-          លទ្ធផលសម្រាប់ “{query}” — {results.length} រឿង
-        </p>
+        <p className="mt-1 text-sm text-mist">លទ្ធផលសម្រាប់ “{query}” — {results.length} រឿង</p>
       ) : (
-        <p className="mt-1 text-sm text-mist">បញ្ចូលឈ្មោះរឿង តារាសម្តែង ឬប្រភេទរឿង។</p>
+        <p className="mt-1 text-sm text-mist">បញ្ចូលឈ្មោះរឿង ឬប្រភេទរឿង។</p>
       )}
 
       {query && results.length === 0 && (
@@ -30,9 +29,7 @@ export default async function SearchPage({
           <p className="text-lg font-semibold">មិនឃើញលទ្ធផលទេ</p>
           <p className="mt-2 text-sm text-mist">
             អ្នកអាច{" "}
-            <Link href="/request" className="text-gold underline underline-offset-4">
-              ស្នើសុំរឿងនេះ
-            </Link>{" "}
+            <Link href="/request" className="text-gold underline underline-offset-4">ស្នើសុំរឿងនេះ</Link>{" "}
             ហើយយើងនឹងពិនិត្យមើល។
           </p>
         </div>

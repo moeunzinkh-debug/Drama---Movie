@@ -1,108 +1,112 @@
-# Security & Production Checklist (CINEMA KH)
+# Security Model & Production Checklist (CINEMA KH)
 
-This prototype is designed for review, **not** for public launch as-is. The
-items below are the gaps that must be closed before the site is exposed publicly.
+This document describes what is **actually implemented** now, and what still
+needs doing before public launch. It replaced the earlier "prototype" checklist.
 
 ---
 
-## 1. Critical — fix before any public deploy
+## 1. What is enforced today
 
-| # | Issue | Where | Fix |
-|---|---|---|---|
-| 1 | `/admin` is publicly reachable with no auth | `app/admin/page.tsx` | Add server-side role check (see below) or remove the route from production builds until admin exists. |
-| 2 | Sign-in is a localStorage demo, not authentication | `components/session-provider.tsx` | Replace with Supabase Auth + Google OAuth, httpOnly cookies, server session refresh. |
-| 3 | Playback gate is client-side only | `components/watch-gate.tsx` | Enforce on the server and issue short-lived video tokens per request. A hidden player is not access control. |
-| 4 | Watchlist / progress / ratings live in localStorage | `components/session-provider.tsx` | Move to Supabase tables with RLS scoped to the owning account + profile. |
-| 5 | Movie requests are not persisted or rate-limited | `app/request/page.tsx` | Server action + DB insert + per-account/IP rate limit. |
+| Control | Implementation | Verified by |
+|---|---|---|
+| Sign-in | Supabase Auth + Google OAuth (PKCE, httpOnly cookies) | `actions/auth.ts`, `app/auth/callback/route.ts` |
+| Session refresh | Middleware refreshes cookies on every request | `middleware.ts` |
+| Admin authorisation | `user_roles` read server-side; checked in middleware **and** in every admin page/action | `lib/auth.ts::requireAdmin`, `app/admin/layout.tsx` |
+| Row access | RLS enabled + `force row level security` on all 24 tables | `supabase/migrations/0002_rls.sql` |
+| Internal columns | `rights_note`, `source_note`, `created_by` not granted to `anon`/`authenticated` | column-level `revoke`/`grant` in `0002_rls.sql` |
+| Video access | Server verifies session → suspension → published → release time → parental ceiling, then mints a short-lived token | `app/api/playback/route.ts` |
+| Viewer data ownership | Every write re-checks `owns_profile()` in SQL; actions also verify before writing | `actions/viewer.ts`, RLS policies |
+| Profile limit | Enforced by a database trigger (max 5), not the UI | `enforce_profile_limit()` |
+| Rate limiting | Movie requests capped at 5 pending / 10 per day, checked server-side | `actions/requests.ts` |
+| Admin audit | Every mutation inserts into `admin_audit_logs` (append-only: no update/delete policy) | `actions/admin.ts` |
+| Ads safety | Enabling a placement is refused unless `NEXT_PUBLIC_ADS_ENABLED=true`; no ad script is loaded | `actions/admin.ts`, `components/ad-slot.tsx` |
+| Rights gate | A title cannot be published without a `rights_note` | `setTitleStatus`, `upsertTitle` |
 
-### Minimum admin guard (until the real one exists)
+### Defence in depth: why each layer exists
 
-Create `middleware.ts` (or a server-side check inside a layout) that rejects
-requests without an admin session:
+1. **Middleware** — cheap redirect for anonymous `/admin` hits. Treat as UX.
+2. **Page/layout** — server render re-checks the role; middleware can be misconfigured.
+3. **Server action** — `requireAdmin()` runs again before any write.
+4. **RLS** — the final authority. Even a bug in all three layers above cannot
+   write another account's rows or read a draft title.
 
-```ts
-// middleware.ts — illustrative only; needs a real session source
-import { NextResponse, type NextRequest } from "next/server";
+---
 
-export function middleware(req: NextRequest) {
-  if (req.nextUrl.pathname.startsWith("/admin")) {
-    const token = req.cookies.get("sb-access-token")?.value;
-    if (!token) return NextResponse.redirect(new URL("/login?next=/admin", req.url));
-  }
-  return NextResponse.next();
-}
+## 2. Verify the guarantees yourself
 
-export const config = { matcher: ["/admin/:path*"] };
+Run these against a real deployment. All four must **fail**.
+
+```bash
+# 1. No session → no playback token
+curl -X POST https://your-site/api/playback -H 'content-type: application/json' \
+  -d '{"episodeId":"<uuid>"}'                     # expect 401
+
+# 2. Internal columns are unreachable even with the anon key
+curl "https://<ref>.supabase.co/rest/v1/titles?select=rights_note" \
+  -H "apikey: $ANON"                              # expect 400/403, not data
+
+# 3. Draft titles are invisible
+curl "https://<ref>.supabase.co/rest/v1/titles?status=eq.draft" \
+  -H "apikey: $ANON"                              # expect []
+
+# 4. Another account's progress is invisible
+curl "https://<ref>.supabase.co/rest/v1/watch_progress" \
+  -H "apikey: $ANON"                              # expect []
 ```
 
-Middleware alone is a redirect. **Authorization must also be re-checked in every
-server action and query** — never trust a client-submitted role or user id.
-
 ---
-
-## 2. Data & authorization rules
-
-- Every table gets RLS enabled; default deny.
-- Profile-owned rows (`watch_progress`, `watch_history`, `watchlists`, `ratings`,
-  `comments`, `movie_requests`, `notification_preferences`) filtered by
-  `auth.uid() = owner_id` and the active profile.
-- Admin verbs guarded by a `user_roles` lookup performed **server-side**
-  (Postgres function or service-role server action), never from JWT claims alone
-  unless the claim is signed and rotated correctly.
-- All admin mutations append to `admin_audit_logs` (actor, action, target, before/after).
-- Validate every input server-side (length, enum membership, UUID shape).
-- Rate limit: auth callbacks, requests, comments, ratings, reports, search.
 
 ## 3. Secrets
 
-Never in the repo, never in `NEXT_PUBLIC_*`:
+**Never** in the repo, never under a `NEXT_PUBLIC_` name:
 
 - `SUPABASE_SERVICE_ROLE_KEY`
-- Google OAuth client secret
-- Cloudflare Stream API token / signing key
-- Any ad-network credentials
+- Google OAuth client secret (lives in Supabase, not in this app)
+- `CLOUDFLARE_STREAM_API_TOKEN`, `CLOUDFLARE_STREAM_SIGNING_KEY`
 
-Use Cloudflare **Secrets** (Workers → Settings → Variables and Secrets) or
-`wrangler secret put`.
+Set them with `npx wrangler secret put <NAME>` on Cloudflare.
+`scripts/check-config.ts` fails the build if a long secret-looking value appears
+in a `NEXT_PUBLIC_` variable.
 
-## 4. Video/streaming
+---
 
-- No permanent public source URLs. Use signed tokens with short TTL.
-- Do not proxy or re-host content without a licence.
-- Health checks: a 200 HTTP status does not prove playability — prefer provider
-  playback APIs.
-- Download/offline: only with an authorised SDK that supports expiry and device
-  limits. Otherwise mark the feature as deferred (it is currently deferred).
+## 4. Still required before public launch
 
-## 5. Advertising (AdSense or other)
+These are **not** implemented, and each is a launch blocker for a real service:
 
-Currently `public/ads.txt` is intentionally empty and `AdSlot` loads **no**
-script. Before enabling:
+| # | Item | Why it matters |
+|---|---|---|
+| 1 | Replace the 14 fictional titles with rights-cleared content | Publishing without rights is copyright infringement |
+| 2 | Replace the sample HLS URL with your Cloudflare Stream assets | The placeholder is a third-party test stream |
+| 3 | Legal review of `/privacy` and `/terms` | Both are still templates |
+| 4 | Real contact address on `/about` | Required for AdSense review |
+| 5 | Parental PIN flow | `parental_settings`/`pin_hash` exist in schema; no UI yet |
+| 6 | Automated video health checks | Tables exist (`video_health_checks`); no cron job yet |
+| 7 | Uptime + error alerting | `observability` is on; no alert routing |
+| 8 | Backup + restore drill | Enable Supabase PITR and test one restore |
+| 9 | Data deletion path for users | Required by privacy law in many jurisdictions |
+| 10 | AdSense application + ads.txt | Only after content is substantial and legal pages are real |
 
-- Do not add ad code until the network has approved the site.
-- Do not place ads above or inside the player, or adjacent to Play / Next Episode.
-- Reserve ad heights (already done in `components/ad-slot.tsx`) to avoid CLS.
-- Never fabricate impressions, clicks, or revenue in the database or dashboard.
-- Import only provider-reported, clearly-labelled estimates.
-- Implement consent (GDPR/CCPA where applicable) before serve.
-- Replace `public/ads.txt` with the exact line(s) from the provider dashboard.
+---
 
-## 6. Privacy & legal
+## 5. Advertising rules (enforced in code)
 
-- Privacy policy and Terms are placeholders — have them reviewed for your jurisdiction.
-- Define retention + deletion for accounts, progress, comments, and logs.
-- Provide a working account/data deletion path before launch.
-- Parental controls / child profiles must be enforced server-side, not just hidden in UI.
+- `AdSlot` renders **no** network script. It is a fixed-height placeholder.
+- Ads are never rendered above or inside the player, nor beside Play / Next.
+- Enabling a placement in `/admin/ads` is refused unless
+  `NEXT_PUBLIC_ADS_ENABLED=true`.
+- No impression, click, or revenue figure is ever written to the database —
+  only provider reports are authoritative.
+- `public/ads.txt` stays empty until the provider issues the real line.
 
-## 7. Operational
+---
 
-- `observability.enabled` is on in `wrangler.jsonc`; review logs after each deploy.
-- Back up Supabase (PITR or scheduled dumps) and **test a restore**.
-- Use `npx wrangler rollback` for fast revert; keep deploys small.
-- Uptime + error alerting before public launch.
+## 6. Data retention
 
-## 8. Content rights
+Define and document these before launch (none are automated yet):
 
-Every title needs an internal rights note (the sample data includes
-`rightsNote`). Publish only content CINEMA KH is authorised to distribute or
-embed. Do not scrape or re-host third-party streams.
+- Delete `watch_history` older than N months.
+- Delete `content_reports` after resolution + N months.
+- `admin_audit_logs` retained for at least 1 year.
+- On account deletion: cascade removes profiles and all viewer data
+  (`on delete cascade` is already declared throughout the schema).

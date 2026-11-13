@@ -1,7 +1,6 @@
-import { getTitle } from "@/lib/data";
-import { TITLES } from "@/lib/catalogue";
+import { getTitleBySlug } from "@/lib/queries";
 
-export const dynamic = "force-static";
+export const dynamic = "force-dynamic";
 
 function hash(s: string): number {
   let h = 2166136261;
@@ -23,7 +22,7 @@ export async function GET(
   ctx: { params: Promise<{ slug: string }> },
 ) {
   const { slug } = await ctx.params;
-  const title = getTitle(slug);
+  const title = await getTitleBySlug(slug).catch(() => null);
   const [c1, c2] = title?.palette ?? ["#101018", "#3a3a55"];
   const seed = hash(slug);
   const W = 600;
@@ -89,6 +88,4 @@ export async function GET(
   });
 }
 
-export function generateStaticParams() {
-  return TITLES.map((t) => ({ slug: t.slug }));
-}
+

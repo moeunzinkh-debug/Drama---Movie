@@ -3,13 +3,14 @@ import { Suspense } from "react";
 import TitleCard from "@/components/title-card";
 import FilterBar from "@/components/filter-bar";
 import AdSlot from "@/components/ad-slot";
-import { browse, years } from "@/lib/data";
-import { CATEGORIES_KM } from "@/lib/catalogue";
+import { listTitles, getCategories, getCountries, getYears } from "@/lib/queries";
 
 export const metadata: Metadata = {
   title: "រកមើលភាពយន្ត និងរឿងភាគ",
   description: "រកមើលតាមប្រភេទ ប្រទេស ឆ្នាំ និងការតម្រៀប។",
 };
+
+export const dynamic = "force-dynamic";
 
 type SP = Promise<Record<string, string | string[] | undefined>>;
 
@@ -28,14 +29,20 @@ export default async function BrowsePage({ searchParams }: { searchParams: SP })
     year: one("year"),
     sort: one("sort"),
   };
-  const results = browse(filters);
+
+  const [results, categories, countries, years] = await Promise.all([
+    listTitles({ ...filters, limit: 60 }),
+    getCategories(),
+    getCountries(),
+    getYears(),
+  ]);
 
   const heading =
     filters.type === "movie" ? "ភាពយន្ត" : filters.type === "drama" ? "រឿងភាគ" : "រកមើលទាំងអស់";
 
   const chips = [
-    filters.category && (CATEGORIES_KM[filters.category] ?? filters.category),
-    filters.country,
+    filters.category && (categories.find((c) => c.slug === filters.category)?.name_km ?? filters.category),
+    filters.country && (countries.find((c) => c.slug === filters.country)?.name_km ?? filters.country),
     filters.year,
   ].filter(Boolean) as string[];
 
@@ -44,14 +51,17 @@ export default async function BrowsePage({ searchParams }: { searchParams: SP })
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-black tracking-tight sm:text-3xl">{heading}</h1>
         <p className="text-sm text-mist">
-          រកឃើញ {results.length} រឿង
-          {chips.length ? ` · ${chips.join(" · ")}` : ""}
+          រកឃើញ {results.length} រឿង{chips.length ? ` · ${chips.join(" · ")}` : ""}
         </p>
       </div>
 
       <div className="mt-5">
         <Suspense fallback={<div className="h-10" />}>
-          <FilterBar years={years()} />
+          <FilterBar
+            categories={categories.map((c) => ({ slug: c.slug, label: c.name_km }))}
+            countries={countries.map((c) => ({ slug: c.slug, label: c.name_km }))}
+            years={years}
+          />
         </Suspense>
       </div>
 
