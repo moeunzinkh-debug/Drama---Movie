@@ -6,9 +6,12 @@ import { createServerClient } from "@supabase/ssr";
  * access to /admin at the edge.
  *
  * This is a first gate only — every admin page, server action and query re-checks
- * the role server-side (lib/auth.ts). Middleware must never be the only control.
+ * the role server-side (lib/auth.ts). This layer must never be the only control.
+ *
+ * Next.js 16 renamed the `middleware` file convention to `proxy`; this file uses
+ * the new name to avoid the deprecation warning. Behaviour is unchanged.
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 

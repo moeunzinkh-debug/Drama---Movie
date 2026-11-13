@@ -4,18 +4,20 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "opennextjs-cloudflare build && node scripts/verify-build.mjs",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "cf:build": "opennextjs-cloudflare build",
+    "cf:build": "opennextjs-cloudflare build && node scripts/verify-build.mjs",
     "cf:preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
-    "cf:deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "cf:deploy": "opennextjs-cloudflare build && node scripts/verify-build.mjs && opennextjs-cloudflare deploy",
     "cf:uploads": "opennextjs-cloudflare populateCache local",
     "seed:generate": "node --experimental-strip-types scripts/generate-seed.ts",
     "check:config": "node --experimental-strip-types scripts/check-config.ts",
     "admin:grant": "node --experimental-strip-types scripts/bootstrap-admin.ts",
-    "db:push": "supabase db push"
+    "db:push": "supabase db push",
+    "build:next": "next build",
+    "verify:build": "node scripts/verify-build.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

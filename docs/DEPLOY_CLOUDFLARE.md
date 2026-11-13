@@ -115,6 +115,58 @@ https://cinema-kh.<your-subdomain>.workers.dev
 
 ---
 
+## ៦.១ បើប្រើ Cloudflare Workers Builds (build ក្នុង dashboard)
+
+បើអ្នកភ្ជាប់ GitHub repo ទៅ **Workers Builds** ក្នុង Cloudflare dashboard
+ហើយឃើញ error នេះ៖
+
+```
+ERROR Could not find compiled Open Next config, did you run the build command?
+Failed: error occurred while running deploy command
+```
+
+**មូលហេតុ៖** `npm run build` ពីមុនជា `opennextjs-cloudflare build` ដែលខាងក្នុង
+វាហៅ `npm run build` ម្តងទៀត → recursion គ្មានទីបញ្ចប់ → `.open-next/` មិនត្រូវបានបង្កើត
+→ deploy រកមិនឃើញ worker។
+
+**បានជួសជុលរួចហើយ** ក្នុង `open-next.config.ts`៖
+
+```ts
+export default {
+  ...defineCloudflareConfig(),
+  buildCommand: "next build",   // ⚠️ ត្រូវតែនៅ top-level
+};
+```
+
+> ចំណាំ៖ ការដាក់ `buildCommand` ខាងក្នុង `defineCloudflareConfig({...})`
+> **មិនដំណើរការទេ** — function នោះយកតែ field របស់ adapter ហើយបោះ field ផ្សេងចោល។
+
+**ការកំណត់ក្នុង dashboard (Workers Builds)៖**
+
+| ការកំណត់ | តម្លៃ |
+|---|---|
+| Build command | `npm run build` |
+| Deploy command | `npx wrangler deploy` |
+| Root directory | `/` (ឬទទេ) |
+| Node version | 20 ឬ 22 (`NODE_VERSION=22`) |
+
+បើអ្នកចង់ឲ្យ build command ធ្វើអ្វីៗទាំងអស់ សូមប្រើ៖
+
+| Build command | Deploy command |
+|---|---|
+| *(ទទេ)* | *(ទទេ)* |
+| — ហើយដាក់ `npm run cf:deploy` ជា **Deploy command** តែម្តង | |
+
+**ពិនិត្យមុន deploy (ណែនាំ)៖**
+
+```bash
+npm run verify:build
+```
+
+បើឃើញ `Build verification passed` នោះប្រាកដថា deploy នឹងដំណើរការ។
+
+---
+
 ## ៧. ភ្ជាប់ដែនផ្ទាល់ខ្លួន (Custom domain)
 
 **វិធីទី ១ — តាម Dashboard (ងាយស្រួល)**
