@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUser, getActiveProfile } from "@/lib/auth";
+import { readEnv, readEnvNumber } from "@/lib/env";
 
 /**
  * POST /api/playback
@@ -108,10 +109,16 @@ export async function POST(request: Request) {
   }
 
   // ---- Cloudflare Stream -----------------------------------------------------
+  // Accept the two names operators commonly create. The app's own name is
+  // CLOUDFLARE_ACCOUNT_ID; CLOUDFLARE_STREAM_ACCOUNT_ID is a common variant
+  // that must keep working rather than silently disabling playback.
   const accountId =
-    process.env.CLOUDFLARE_ACCOUNT_ID ?? process.env.R2_ACCOUNT_ID ?? "";
-  const apiToken = process.env.CLOUDFLARE_STREAM_API_TOKEN;
-  const signingKey = process.env.CLOUDFLARE_STREAM_SIGNING_KEY;
+    readEnv("CLOUDFLARE_ACCOUNT_ID") ??
+    readEnv("CLOUDFLARE_STREAM_ACCOUNT_ID") ??
+    readEnv("R2_ACCOUNT_ID") ??
+    "";
+  const apiToken = readEnv("CLOUDFLARE_STREAM_API_TOKEN");
+  const signingKey = readEnv("CLOUDFLARE_STREAM_SIGNING_KEY");
 
   if (!accountId || !apiToken) {
     return fail(
@@ -121,7 +128,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const ttlSeconds = Number(process.env.PLAYBACK_TOKEN_TTL_SECONDS ?? 3600);
+  const ttlSeconds = readEnvNumber("PLAYBACK_TOKEN_TTL_SECONDS", 3600);
   const tokenBody: Record<string, unknown> = {
     exp: Math.floor(Date.now() / 1000) + ttlSeconds,
     // Bind the token to this user so a leaked URL is traceable and revocable.
@@ -133,7 +140,7 @@ export async function POST(request: Request) {
     // Signed tokens (recommended): require `requireSignedURLs` on the asset.
     const payload = {
       ...tokenBody,
-      kid: process.env.CLOUDFLARE_STREAM_SIGNING_KEY_ID ?? undefined,
+      kid: readEnv("CLOUDFLARE_STREAM_SIGNING_KEY_ID"),
     };
     const res = await fetch(
       `https://api.cloudflare.com/client/v4/accounts/${accountId}/stream/${asset.provider_asset_id}/token`,
@@ -159,7 +166,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       kind: "cloudflare_stream",
       token: json.result.token,
-      customerCode: process.env.CLOUDFLARE_STREAM_CUSTOMER_CODE ?? accountId,
+      customerCode: readEnv("CLOUDFLARE_STREAM_CUSTOMER_CODE") ?? accountId,
       assetId: asset.provider_asset_id,
       expiresIn: ttlSeconds,
       episodeId,
@@ -170,7 +177,7 @@ export async function POST(request: Request) {
   // No signing key: the asset must be public or the iframe will 401.
   return NextResponse.json({
     kind: "cloudflare_stream",
-    customerCode: process.env.CLOUDFLARE_STREAM_CUSTOMER_CODE ?? accountId,
+    customerCode: readEnv("CLOUDFLARE_STREAM_CUSTOMER_CODE") ?? accountId,
     assetId: asset.provider_asset_id,
     episodeId,
     titleSlug: row.seasons.titles.slug,

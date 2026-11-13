@@ -16,6 +16,10 @@ import type { NextConfig } from "next";
  */
 const isDev = process.env.NODE_ENV !== "production";
 
+// `headers()` is evaluated at build time, so this can only ever see what the
+// build environment had. The policy therefore also allows the Supabase wildcard
+// below: the Worker may be configured with a project that did not exist yet when
+// the bundle was built, and a CSP that omits it blocks every auth request.
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const supabaseHost = (() => {
   try {
@@ -31,14 +35,16 @@ const csp = [
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
   // Posters are same-origin SVG; Supabase avatars and video posters are external.
-  `img-src 'self' data: blob:${supabaseHost ? ` https://${supabaseHost}` : ""}`,
+  `img-src 'self' data: blob: https://*.supabase.co${
+    supabaseHost ? ` https://${supabaseHost}` : ""
+  }`,
   // HLS segments come from Cloudflare Stream; Supabase is needed for auth/session.
-  `media-src 'self' blob: https://*.cloudflarestream.com https://*.cloudflare.com${
+  `media-src 'self' blob: https://*.cloudflarestream.com https://*.cloudflare.com https://*.supabase.co${
     supabaseHost ? ` https://${supabaseHost}` : ""
   }`,
   "font-src 'self' data:",
   // supabase-js talks to Postgres over HTTPS; dev uses an HMR websocket.
-  `connect-src 'self'${isDev ? " ws: wss:" : ""}${
+  `connect-src 'self'${isDev ? " ws: wss:" : ""} https://*.supabase.co wss://*.supabase.co${
     supabaseHost ? ` https://${supabaseHost} wss://${supabaseHost}` : ""
   } https://*.cloudflarestream.com`,
   "frame-src 'self' https://*.cloudflarestream.com",

@@ -1,11 +1,11 @@
 import type { MetadataRoute } from "next";
 import { listTitles } from "@/lib/queries";
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+import { siteUrl } from "@/lib/supabase/env";
 
 export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const SITE_URL = siteUrl();
   const titles = await listTitles({ limit: 500 }).catch(() => []);
   const pages = ["", "/browse", "/calendar", "/request", "/about", "/privacy", "/terms"];
   return [

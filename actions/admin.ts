@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
+import { adsEnabled } from "@/lib/supabase/env";
 
 /**
  * Admin mutations.
@@ -242,7 +243,7 @@ export async function setAdPlacementEnabled(id: string, enabled: boolean): Promi
   const admin = await requireAdmin();
 
   // Guard rail: never allow ads on while the provider flag is off.
-  if (enabled && process.env.NEXT_PUBLIC_ADS_ENABLED !== "true") {
+  if (enabled && !adsEnabled()) {
     return {
       ok: false,
       error:

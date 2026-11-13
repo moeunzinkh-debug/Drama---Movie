@@ -2,6 +2,7 @@ import "server-only";
 
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { supabaseUrl } from "./env";
+import { readEnv } from "@/lib/env";
 
 /**
  * Service-role client — bypasses RLS.
@@ -13,7 +14,7 @@ import { supabaseUrl } from "./env";
  * Every call site must perform its own authorisation check first.
  */
 export function createAdminClient() {
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const serviceKey = readEnv("SUPABASE_SERVICE_ROLE_KEY");
   if (!serviceKey) {
     throw new Error(
       "SUPABASE_SERVICE_ROLE_KEY is not set. This key is server-only — add it as a " +

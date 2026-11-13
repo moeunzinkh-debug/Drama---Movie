@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { signInWithGoogle } from "@/actions/auth";
 import { getCurrentUser } from "@/lib/auth";
-import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { isSupabaseConfigured, missingSupabaseEnv } from "@/lib/supabase/env";
 import AuthError from "@/components/auth-error";
 
 export const metadata: Metadata = { title: "ចូលដោយ Google" };
@@ -30,9 +30,23 @@ export default async function LoginPage({
       {!isSupabaseConfigured() && (
         <div className="mt-6 rounded-xl border border-red-500/30 bg-red-500/5 p-4 text-xs leading-relaxed text-red-200/90">
           <strong className="block text-sm text-red-200">មិនទាន់កំណត់ Supabase</strong>
-          សូមបន្ថែម <code>NEXT_PUBLIC_SUPABASE_URL</code> និង{" "}
-          <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> ក្នុង <code>.env.local</code>។
-          សូមមើល <Link href="/" className="underline">docs/SETUP_REAL_BACKEND.md</Link>។
+          <p className="mt-1.5">អថេរខាងក្រោមមិនត្រូវបានរកឃើញនៅពេលដំណើរការ៖</p>
+          <ul className="mt-2 list-disc space-y-1 pl-4 font-mono text-[11px]">
+            {missingSupabaseEnv().map((name) => (
+              <li key={name}>{name}</li>
+            ))}
+          </ul>
+          <p className="mt-3 border-t border-red-500/20 pt-3">
+            បើអ្នកបានកំណត់ពួកវាក្នុង Cloudflare រួចហើយ សូមពិនិត្យថា ៖
+          </p>
+          <ol className="mt-1.5 list-decimal space-y-1 pl-4">
+            <li>ពួកវាស្ថិតក្នុង <strong>Settings → Variables and Secrets</strong> របស់ Worker</li>
+            <li>អ្នកបាន <strong>deploy ម្តងទៀត</strong> ក្រោយបន្ថែម (Variables ត្រូវការ deploy ថ្មី)</li>
+            <li>ឈ្មោះត្រូវគ្នាបេះបិទ (អក្សរធំ និងសញ្ញា <code>_</code>)</li>
+          </ol>
+          <p className="mt-3 border-t border-red-500/20 pt-3">
+            ពិនិត្យដោយបើក <code>/api/health</code> — វានឹងបញ្ជាក់ឈ្មោះអថេរដែលខ្វះ។
+          </p>
         </div>
       )}
 
