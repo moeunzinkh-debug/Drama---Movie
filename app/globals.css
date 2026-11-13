@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* Self-hosted Khmer font (OFL-1.1). Bundled rather than fetched from Google
+   Fonts so the site renders Khmer correctly offline, behind firewalls, and
+   without a third-party request that would violate our CSP. */
+@import "@fontsource-variable/noto-sans-khmer";
+
 @theme {
   --color-ink: #07070c;
   --color-ink-2: #0d0d15;
@@ -8,8 +13,8 @@
   --color-gold: #f0b429;
   --color-gold-dim: #b8841a;
   --color-mist: #9a9aad;
-  --font-sans: "Noto Sans Khmer", "Khmer OS Battambang", ui-sans-serif, system-ui,
-    -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-sans: "Noto Sans Khmer Variable", "Noto Sans Khmer", "Khmer OS Battambang",
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 :root {

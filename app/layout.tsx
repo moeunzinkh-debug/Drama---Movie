@@ -16,12 +16,40 @@ export const metadata: Metadata = {
   description:
     "CINEMA KH — វេទិកាមើលភាពយន្ត និងរឿងភាគឥតគិតថ្លៃសម្រាប់ទស្សនិកជនខ្មែរ។",
   applicationName: "CINEMA KH",
-  robots: { index: true, follow: true },
+  manifest: "/manifest.webmanifest",
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-image-preview": "large" },
+  },
+  alternates: { canonical: "/" },
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon-192.png", type: "image/png", sizes: "192x192" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
+  },
+  appleWebApp: {
+    capable: true,
+    title: "CINEMA KH",
+    statusBarStyle: "black-translucent",
+  },
+  formatDetection: { telephone: false },
   openGraph: {
     title: "CINEMA KH",
     description: "ភាពយន្ត និងរឿងភាគខ្មែរ — មើលបានឥតគិតថ្លៃ",
     type: "website",
     locale: "km_KH",
+    siteName: "CINEMA KH",
+    url: "/",
+    images: [{ url: "/og-default.png", width: 1200, height: 630, alt: "CINEMA KH" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "CINEMA KH",
+    description: "ភាពយន្ត និងរឿងភាគខ្មែរ — មើលបានឥតគិតថ្លៃ",
+    images: ["/og-default.png"],
   },
 };
 

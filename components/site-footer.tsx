@@ -21,12 +21,9 @@ export default function SiteFooter() {
             </p>
             <p className="mt-2 text-sm leading-relaxed text-mist">
               វេទិកាមើលភាពយន្ត និងរឿងភាគឥតគិតថ្លៃសម្រាប់ទស្សនិកជនខ្មែរ។
-              គេហទំព័រនេះជា <span className="text-white/80">គំរូអភិវឌ្ឍន៍</span> —
-              មាតិកាទាំងអស់ជារឿងប្រឌិតសម្រាប់ការសាកល្បង។
             </p>
-            <p className="mt-3 rounded-lg border border-gold/25 bg-gold/5 px-3 py-2 text-xs leading-relaxed text-gold/90">
-              ស្ថានភាព៖ មិនទាន់មានការផ្សាយពាណិជ្ជកម្ម ឬការចូលដោយ Google ពិតប្រាកដទេ។
-              សូមមើលឯកសារ docs/ សម្រាប់ជំហានបន្ទាប់។
+            <p className="mt-3 text-xs leading-relaxed text-mist/70">
+              គ្រប់មាតិកាត្រូវបានផ្សាយដោយមានការអនុញ្ញាត ឬជាមាតិកាដែលមានអាជ្ញាបណ្ណបើកចំហ។
             </p>
           </div>
           <nav className="grid grid-cols-2 gap-x-10 gap-y-2 text-sm" aria-label="តំណភ្ជាប់ខាងក្រោម">
