@@ -1,6 +1,9 @@
 import Link from "next/link";
 import type { Title } from "@/lib/types";
-import { CATEGORIES_KM } from "@/lib/catalogue";
+
+function prettyCategory(slug: string): string {
+  return slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 export default function TitleCard({
   title,
@@ -38,13 +41,13 @@ export default function TitleCard({
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-3">
           <p className="line-clamp-1 text-sm font-semibold text-white">{title.nameKm}</p>
           <p className="line-clamp-1 text-[11px] text-white/60">
-            {title.year} · {title.country} · {title.ageRating}
+            {title.year} · {title.ageRating}
           </p>
         </div>
       </div>
       <div className="px-3 py-2.5">
         <p className="line-clamp-1 text-xs text-mist">
-          {title.categories.slice(0, 2).map((c) => CATEGORIES_KM[c] ?? c).join(" · ")}
+          {title.categories.slice(0, 2).map(prettyCategory).join(" · ")}
         </p>
       </div>
     </Link>

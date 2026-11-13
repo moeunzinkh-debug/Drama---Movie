@@ -1,31 +1,39 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { releaseCalendar } from "@/lib/data";
+import { getReleaseCalendar } from "@/lib/queries";
 
 export const metadata: Metadata = {
   title: "កាលវិភាគភាគថ្មី",
   description: "កាលវិភាគចេញផ្សាយភាគថ្មីៗ។",
 };
 
-const fmtDate = (iso: string) =>
-  new Date(iso).toLocaleDateString("km-KH", { weekday: "short", day: "numeric", month: "short" });
+export const dynamic = "force-dynamic";
 
-function Row({ entry, upcoming }: { entry: ReturnType<typeof releaseCalendar>["upcoming"][number]; upcoming: boolean }) {
-  const { title, episode } = entry;
+type Entry = Awaited<ReturnType<typeof getReleaseCalendar>>["recent"][number];
+
+/** Rendered with a fixed locale/format so server and client HTML always match. */
+const fmtDate = (iso: string) => {
+  const d = new Date(iso);
+  return `${String(d.getUTCDate()).padStart(2, "0")}/${String(d.getUTCMonth() + 1).padStart(2, "0")}/${d.getUTCFullYear()}`;
+};
+const fmtTime = (iso: string) => {
+  const d = new Date(iso);
+  return `${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`;
+};
+
+function Row({ entry, upcoming }: { entry: Entry; upcoming: boolean }) {
   return (
     <li className="flex items-center gap-3 border-b border-line/60 px-4 py-3 last:border-0">
-      <div className="w-16 shrink-0 text-center">
-        <p className="text-[11px] uppercase tracking-wide text-mist/60">{fmtDate(episode.releaseAt)}</p>
-        <p className="text-xs font-semibold text-gold">
-          {new Date(episode.releaseAt).toLocaleTimeString("km-KH", { hour: "2-digit", minute: "2-digit" })}
-        </p>
+      <div className="w-20 shrink-0 text-center">
+        <p className="text-[11px] uppercase tracking-wide text-mist/60">{fmtDate(entry.releaseAt)}</p>
+        <p className="text-xs font-semibold text-gold">{fmtTime(entry.releaseAt)} UTC</p>
       </div>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={`/api/poster/${title.slug}`} alt="" width={40} height={60} className="h-[60px] w-10 rounded object-cover" />
+      <img src={`/api/poster/${entry.titleSlug}`} alt="" width={40} height={60} className="h-[60px] w-10 rounded object-cover" />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">{title.nameKm}</p>
+        <p className="truncate text-sm font-medium">{entry.titleNameKm}</p>
         <p className="truncate text-xs text-mist">
-          រដូវ {episode.season} · ភាគ {episode.number} — {episode.titleKm}
+          រដូវ {entry.season} · ភាគ {entry.number} — {entry.nameKm}
         </p>
       </div>
       <span
@@ -36,7 +44,7 @@ function Row({ entry, upcoming }: { entry: ReturnType<typeof releaseCalendar>["u
         {upcoming ? "កំណត់ទុក" : "ចេញហើយ"}
       </span>
       {!upcoming && (
-        <Link href={`/watch/${title.slug}?ep=${episode.id}`} className="shrink-0 text-xs text-gold hover:underline">
+        <Link href={`/watch/${entry.titleSlug}?ep=${entry.episodeId}`} className="shrink-0 text-xs text-gold hover:underline">
           មើល
         </Link>
       )}
@@ -44,13 +52,13 @@ function Row({ entry, upcoming }: { entry: ReturnType<typeof releaseCalendar>["u
   );
 }
 
-export default function CalendarPage() {
-  const { upcoming, recent } = releaseCalendar();
+export default async function CalendarPage() {
+  const { upcoming, recent } = await getReleaseCalendar();
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
       <h1 className="text-2xl font-black tracking-tight sm:text-3xl">កាលវិភាគភាគថ្មី</h1>
       <p className="mt-1 text-sm text-mist">
-        ពេលវេលាបង្ហាញតាមម៉ោងក្នុងឧបករណ៍របស់អ្នក។ កាលវិភាគអាចផ្លាស់ប្តូរបាន។
+        ពេលវេលាបង្ហាញជា UTC។ កាលវិភាគអាចផ្លាស់ប្តូរបាន។
       </p>
 
       <section className="mt-6">
@@ -61,20 +69,22 @@ export default function CalendarPage() {
           </p>
         ) : (
           <ul className="overflow-hidden rounded-xl border border-line bg-ink-2">
-            {upcoming.map((e) => (
-              <Row key={e.episode.id} entry={e} upcoming />
-            ))}
+            {upcoming.map((e) => <Row key={e.episodeId} entry={e} upcoming />)}
           </ul>
         )}
       </section>
 
       <section className="mt-8">
         <h2 className="mb-2 text-lg font-bold">ចេញផ្សាយថ្មីៗ</h2>
-        <ul className="overflow-hidden rounded-xl border border-line bg-ink-2">
-          {recent.map((e) => (
-            <Row key={e.episode.id} entry={e} upcoming={false} />
-          ))}
-        </ul>
+        {recent.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-line p-8 text-center text-sm text-mist">
+            មិនទាន់មានភាគចេញផ្សាយទេ។
+          </p>
+        ) : (
+          <ul className="overflow-hidden rounded-xl border border-line bg-ink-2">
+            {recent.map((e) => <Row key={e.episodeId} entry={e} upcoming={false} />)}
+          </ul>
+        )}
       </section>
     </div>
   );

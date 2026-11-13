@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Title } from "@/lib/types";
-import { CATEGORIES_KM } from "@/lib/catalogue";
-import { watchHref } from "@/lib/data";
+
 
 export default function HeroCarousel({ titles }: { titles: Title[] }) {
   const [i, setI] = useState(0);
@@ -43,12 +42,12 @@ export default function HeroCarousel({ titles }: { titles: Title[] }) {
           <p className="mt-1 text-sm uppercase tracking-[0.2em] text-gold/80">{t.name}</p>
           <p className="mt-4 max-w-xl text-sm leading-relaxed text-mist sm:text-base">{t.taglineKm}</p>
           <p className="mt-1 max-w-xl text-xs text-mist/60">
-            {t.categories.map((c) => CATEGORIES_KM[c] ?? c).join(" · ")} · {t.country} · {t.subtitleLanguages.join(" / ")}
+            {t.categories.map((c) => c.replace(/-/g, " ")).join(" · ")} · {t.country} · {t.subtitleLanguages.join(" / ")}
           </p>
 
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <Link
-              href={watchHref(t)}
+              href={`/watch/${t.slug}`}
               className="inline-flex items-center gap-2 rounded-full bg-gold px-6 py-3 text-sm font-bold text-ink transition hover:bg-gold-dim"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>

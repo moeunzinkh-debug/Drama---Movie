@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import type { Title } from "@/lib/types";
-import { isReleased } from "@/lib/data";
+/** Release gate mirrors the server rule; the server re-checks on every request. */
+const isReleased = (e: { releaseAt: string }) => new Date(e.releaseAt).getTime() <= Date.now();
 import { useSession } from "@/components/session-provider";
 
 /** Deterministic date format so server and client render identical markup. */
@@ -50,7 +51,9 @@ export default function EpisodeList({ title }: { title: Title }) {
         {season.episodes.map((e) => {
           const released = isReleased(e);
           const rec = progress.find((p) => p.slug === title.slug && p.episodeId === e.id);
-          const pct = rec ? Math.min(100, Math.round((rec.position / Math.max(rec.duration, 1)) * 100)) : 0;
+          const pct = rec
+            ? Math.min(100, Math.round((rec.positionSeconds / Math.max(rec.durationSeconds, 1)) * 100))
+            : 0;
           const inner = (
             <>
               <span

@@ -1,9 +1,12 @@
 import type { MetadataRoute } from "next";
-import { publishedTitles } from "@/lib/data";
+import { listTitles } from "@/lib/queries";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export const dynamic = "force-dynamic";
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const titles = await listTitles({ limit: 500 }).catch(() => []);
   const pages = ["", "/browse", "/calendar", "/request", "/about", "/privacy", "/terms"];
   return [
     ...pages.map((p) => ({
@@ -12,7 +15,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "daily" as const,
       priority: p === "" ? 1 : 0.6,
     })),
-    ...publishedTitles().map((t) => ({
+    ...titles.map((t) => ({
       url: `${SITE_URL}/title/${t.slug}`,
       lastModified: new Date(t.addedAt),
       changeFrequency: "weekly" as const,

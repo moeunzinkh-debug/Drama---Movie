@@ -1,9 +1,16 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { CATEGORIES, CATEGORIES_KM, COUNTRIES, COUNTRIES_KM } from "@/lib/catalogue";
 
-export default function FilterBar({ years }: { years: number[] }) {
+export default function FilterBar({
+  categories,
+  countries,
+  years,
+}: {
+  categories: { slug: string; label: string }[];
+  countries: { slug: string; label: string }[];
+  years: number[];
+}) {
   const router = useRouter();
   const params = useSearchParams();
 
@@ -33,16 +40,16 @@ export default function FilterBar({ years }: { years: number[] }) {
       <label className="sr-only" htmlFor="f-cat">ប្រភេទរឿង</label>
       <select id="f-cat" className={selectCls} value={val("category")} onChange={(e) => set("category", e.target.value)}>
         <option value="all">ប្រភេទរឿងទាំងអស់</option>
-        {CATEGORIES.map((c) => (
-          <option key={c} value={c}>{CATEGORIES_KM[c] ?? c}</option>
+        {categories.map((c) => (
+          <option key={c.slug} value={c.slug}>{c.label}</option>
         ))}
       </select>
 
       <label className="sr-only" htmlFor="f-country">ប្រទេស</label>
       <select id="f-country" className={selectCls} value={val("country")} onChange={(e) => set("country", e.target.value)}>
         <option value="all">ប្រទេសទាំងអស់</option>
-        {COUNTRIES.map((c) => (
-          <option key={c} value={c}>{COUNTRIES_KM[c] ?? c}</option>
+        {countries.map((c) => (
+          <option key={c.slug} value={c.slug}>{c.label}</option>
         ))}
       </select>
 

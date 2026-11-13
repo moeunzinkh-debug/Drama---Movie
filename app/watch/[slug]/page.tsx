@@ -1,23 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { TITLES } from "@/lib/catalogue";
-import {
-  getTitle,
-  findEpisode,
-  firstPlayableEpisode,
-  isReleased,
-  nextEpisode,
-  previousEpisode,
-  related,
-} from "@/lib/data";
+import { getTitleBySlug, getPlayableEpisode, getRelated } from "@/lib/queries";
+import { getActiveProfile } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
 import WatchGate from "@/components/watch-gate";
 import AdSlot from "@/components/ad-slot";
 import TitleCard from "@/components/title-card";
 
-export function generateStaticParams() {
-  return TITLES.map((t) => ({ slug: t.slug }));
-}
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,
@@ -25,7 +16,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const t = getTitle(slug);
+  const t = await getTitleBySlug(slug);
   return { title: t ? `មើល ${t.nameKm}` : "មើល" };
 }
 
@@ -38,27 +29,61 @@ export default async function WatchPage({
 }) {
   const { slug } = await params;
   const { ep } = await searchParams;
-  const title = getTitle(slug);
+
+  const title = await getTitleBySlug(slug);
   if (!title) notFound();
 
-  const fallback = firstPlayableEpisode(title);
-  if (!fallback) redirect(`/title/${title.slug}`);
+  const profile = await getActiveProfile();
+  const playable = await getPlayableEpisode(slug, ep, profile?.id);
 
-  const episode = ep ? findEpisode(title, ep) : fallback;
-  if (!episode) notFound();
-  if (!isReleased(episode)) redirect(`/title/${title.slug}`);
+  // Nothing released yet for this title.
+  if (!playable) redirect(`/title/${title.slug}`);
 
-  const next = nextEpisode(title, episode.id);
-  const prev = previousEpisode(title, episode.id);
-  const rel = related(title, 6);
+  // Server-side release gate: never render a player for an unreleased episode.
+  if (!playable.released) redirect(`/title/${title.slug}`);
+
+  // Resume position for the active profile (server read, not client cache).
+  let resumeFrom = 0;
+  if (profile) {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("watch_progress")
+      .select("position_seconds, completed")
+      .eq("profile_id", profile.id)
+      .eq("episode_id", playable.id)
+      .maybeSingle();
+    if (data && !data.completed) resumeFrom = data.position_seconds;
+  }
+
+  const rel = await getRelated(title, 6);
+  const episode = {
+    id: playable.id,
+    season: playable.season,
+    number: playable.number,
+    title: playable.title,
+    titleKm: playable.titleKm,
+    durationMinutes: Math.round(playable.durationSeconds / 60),
+    releaseAt: playable.releaseAt,
+    synopsis: undefined,
+  };
+
+  const next = playable.nextId
+    ? {
+        id: playable.nextId,
+        number: playable.nextNumber ?? 0,
+        titleKm: playable.nextTitleKm ?? "",
+        href: `/watch/${title.slug}?ep=${playable.nextId}`,
+      }
+    : undefined;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
-      {/* Player first — no ads above or inside it. */}
       <WatchGate
         title={title}
         episode={episode}
-        next={next ? { ...next, href: `/watch/${title.slug}?ep=${next.id}` } : undefined}
+        profileId={profile?.id ?? null}
+        next={next}
+        resumeFrom={resumeFrom}
       />
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
@@ -74,9 +99,9 @@ export default async function WatchPage({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 text-sm">
-          {prev ? (
+          {playable.previousId ? (
             <Link
-              href={`/watch/${title.slug}?ep=${prev.id}`}
+              href={`/watch/${title.slug}?ep=${playable.previousId}`}
               className="rounded-full border border-line px-4 py-2 text-mist transition hover:border-gold/50 hover:text-gold"
             >
               ← ភាគមុន
@@ -85,10 +110,7 @@ export default async function WatchPage({
             <span className="rounded-full border border-line/50 px-4 py-2 text-mist/40">← ភាគមុន</span>
           )}
           {next ? (
-            <Link
-              href={`/watch/${title.slug}?ep=${next.id}`}
-              className="rounded-full bg-gold px-4 py-2 font-semibold text-ink transition hover:bg-gold-dim"
-            >
+            <Link href={next.href} className="rounded-full bg-gold px-4 py-2 font-semibold text-ink transition hover:bg-gold-dim">
               ភាគបន្ទាប់ →
             </Link>
           ) : (
@@ -109,7 +131,6 @@ export default async function WatchPage({
         </p>
       )}
 
-      {/* Ad placement: below the player, never alongside the playback controls. */}
       <div className="mt-6">
         <AdSlot placement="watch-below-player" format="leaderboard" />
       </div>
@@ -117,10 +138,7 @@ export default async function WatchPage({
       <section className="mt-6 rounded-xl border border-line bg-ink-2 p-4">
         <h2 className="text-sm font-semibold">អំពីភាគនេះ</h2>
         <p className="mt-2 text-sm leading-relaxed text-mist">
-          {episode.synopsis ?? title.synopsisKm}
-        </p>
-        <p className="mt-3 text-xs text-mist/50">
-          សិទ្ធិមាតិកា៖ {title.rightsNote} — វីដេអូក្នុងគេហទំព័រនេះជាការសាកល្បង។
+          {episode.synopsis ?? title.synopsisKm ?? title.synopsis}
         </p>
       </section>
 
