@@ -6,7 +6,8 @@
 > **ស្ថានភាព៖ backend ពិតដំណើរការ។** ការចូល Google, database, RLS, ការការពារ admin,
 > និង player វីដេអូ សុទ្ធតែជាកូដផលិតកម្ម។
 > **មាតិកានៅជារឿងប្រឌិតសម្រាប់សាកល្បង** និង **មិនទាន់មានពាណិជ្ជកម្ម** —
-> សូមអាន [docs/SECURITY.md](docs/SECURITY.md) មុនដាក់ផ្សាយជាសាធារណៈ។
+> **មុនដាក់ផ្សាយជាសាធារណៈ៖** អាន [docs/LAUNCH_CHECKLIST.md](docs/LAUNCH_CHECKLIST.md) និង [docs/SECURITY.md](docs/SECURITY.md)។
+> ពិនិត្យស្ថានភាពដោយពាក្យបញ្ជា `npm run check:launch`។
 
 ## ចាប់ផ្តើម
 
@@ -73,7 +74,7 @@ supabase/migrations/
   0002_rls.sql              ★ RLS policies + column grants
   0003_seed.sql             demo catalogue (generated)
 middleware.ts               session refresh + /admin gate
-docs/                       ឯកសារ setup, deploy, សុវត្ថិភាព
+docs/                       ឯកសារ setup, deploy, សុវត្ថិភាព, បញ្ជីត្រួតពិនិត្យមុនផ្សាយ
 ```
 
 ★ = ឯកសារសំខាន់ខាងសុវត្ថិភាព

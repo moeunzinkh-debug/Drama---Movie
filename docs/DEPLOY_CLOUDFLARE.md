@@ -272,3 +272,35 @@ npx wrangler tail
 4. ជ្រើសរើស Cloudflare Stream → ភ្ជាប់វីដេអូដែលមានសិទ្ធិ
 5. ដាក់ការការពារ admin (server-side) មុនបើកជាសាធារណៈ
 6. ដាក់ពាក្យ AdSense បន្ទាប់ពីគេហទំព័រមានខ្លឹមសារគ្រប់គ្រាន់
+
+---
+
+## ៧. ការផ្ទៀងផ្ទាត់ក្រោយការចេញផ្សាយ
+
+បន្ទាប់ពី `npx wrangler deploy` សូមផ្ទៀងផ្ទាត់ជាបន្ទាន់៖
+
+```bash
+# ១. សុខភាពប្រព័ន្ធ — ត្រូវបាន 200 និង "database":"ok"
+curl -s https://<ដែនរបស់អ្នក>/api/health
+
+# ២. Security headers ត្រូវបានបញ្ជូន
+curl -sI https://<ដែនរបស់អ្នក>/ | grep -iE "content-security-policy|strict-transport|x-frame"
+
+# ៣. manifest សម្រាប់ដំឡើងជា app
+curl -s https://<ដែនរបស់អ្នក>/manifest.webmanifest | head -c 200
+```
+
+លទ្ធផលដែលរំពឹង៖
+
+| ការត្រួតពិនិត្យ | លទ្ធផលត្រឹមត្រូវ |
+| --- | --- |
+| `/api/health` | `{"status":"ok","database":"ok",...}` — HTTP 200 |
+| `Content-Security-Policy` | មាន និងមាន `frame-ancestors 'none'` |
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` |
+| `X-Frame-Options` | `DENY` |
+| `/manifest.webmanifest` | JSON មាន `"lang":"km"` |
+
+បើ `/api/health` ត្រឡប់ **503** មានន័យថា Worker ដំណើរការ ប៉ុន្តែមិនភ្ជាប់ទៅ database បានទេ —
+ពិនិត្យ `NEXT_PUBLIC_SUPABASE_URL` និង `NEXT_PUBLIC_SUPABASE_ANON_KEY` ក្នុង Worker variables។
+
+បន្ទាប់មក ធ្វើតាម `docs/LAUNCH_CHECKLIST.md` ផ្នែក **ង** សម្រាប់ការតាមដាន ២៤ ម៉ោងដំបូង។
